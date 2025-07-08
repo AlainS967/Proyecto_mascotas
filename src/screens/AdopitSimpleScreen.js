@@ -8,9 +8,14 @@ import {
   Image,
   Alert,
   ScrollView,
+  Animated,
+  PanResponder,
+  Dimensions,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import petService from '../services/petService';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const AdopitSimpleScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -18,6 +23,73 @@ const AdopitSimpleScreen = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showAllPets, setShowAllPets] = useState(false); // Modo demostración
+  
+  // Variables para swipe
+  const [pan] = useState(new Animated.ValueXY());
+  const [rotation] = useState(new Animated.Value(0));
+  const [opacity] = useState(new Animated.Value(1));
+
+  // PanResponder para swipe gestures
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: (evt, gestureState) => {
+      return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+    },
+    onPanResponderGrant: () => {
+      pan.setOffset({
+        x: pan.x._value,
+        y: pan.y._value,
+      });
+    },
+    onPanResponderMove: (evt, gestureState) => {
+      // Limitar el movimiento vertical
+      const limitedY = Math.max(-50, Math.min(50, gestureState.dy));
+      pan.setValue({ x: gestureState.dx, y: limitedY });
+      
+      // Rotación basada en la posición horizontal
+      const rotationValue = gestureState.dx / screenWidth * 0.5;
+      rotation.setValue(rotationValue);
+      
+      // Cambiar opacidad al deslizar
+      const newOpacity = Math.max(0.5, 1 - Math.abs(gestureState.dx) / screenWidth);
+      opacity.setValue(newOpacity);
+    },
+    onPanResponderRelease: (evt, gestureState) => {
+      pan.flattenOffset();
+      
+      const swipeThreshold = screenWidth * 0.25; // Umbral más bajo para más sensibilidad
+      const velocityThreshold = 0.7;
+      
+      if (gestureState.dx > swipeThreshold || gestureState.vx > velocityThreshold) {
+        // Swipe right - Like
+        swipeRight();
+      } else if (gestureState.dx < -swipeThreshold || gestureState.vx < -velocityThreshold) {
+        // Swipe left - Pass
+        swipeLeft();
+      } else {
+        // Volver a la posición original con animación suave
+        Animated.parallel([
+          Animated.spring(pan, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: false,
+            tension: 100,
+            friction: 8,
+          }),
+          Animated.spring(rotation, {
+            toValue: 0,
+            useNativeDriver: false,
+            tension: 100,
+            friction: 8,
+          }),
+          Animated.spring(opacity, {
+            toValue: 1,
+            useNativeDriver: false,
+            tension: 100,
+            friction: 8,
+          }),
+        ]).start();
+      }
+    },
+  });
 
   useEffect(() => {
     loadPets();
@@ -106,6 +178,37 @@ const AdopitSimpleScreen = ({ navigation }) => {
 
   const currentPet = pets[currentIndex];
 
+  // Funciones de swipe
+  const swipeRight = () => {
+    console.log('👍 Swipe right - Like');
+    Animated.timing(pan, {
+      toValue: { x: screenWidth + 100, y: 0 },
+      duration: 250,
+      useNativeDriver: false,
+    }).start(() => {
+      handleLike();
+      resetCardPosition();
+    });
+  };
+
+  const swipeLeft = () => {
+    console.log('👎 Swipe left - Pass');
+    Animated.timing(pan, {
+      toValue: { x: -screenWidth - 100, y: 0 },
+      duration: 250,
+      useNativeDriver: false,
+    }).start(() => {
+      handlePass();
+      resetCardPosition();
+    });
+  };
+
+  const resetCardPosition = () => {
+    pan.setValue({ x: 0, y: 0 });
+    rotation.setValue(0);
+    opacity.setValue(1);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -170,43 +273,146 @@ const AdopitSimpleScreen = ({ navigation }) => {
           <View style={styles.petContainer}>
             <Text style={styles.successTitle}>✅ Mascota {currentIndex + 1} de {pets.length}</Text>
             
-            <View style={styles.petCard}>
-              <Image 
-                source={{ uri: currentPet.image || 'https://via.placeholder.com/300x200/4ECDC4/FFFFFF?text=🐾' }}
-                style={styles.petImage}
-                resizeMode="cover"
-              />
-              
-              <View style={styles.petInfo}>
-                <Text style={styles.petName}>{currentPet.name}</Text>
-                <Text style={styles.petBreed}>{currentPet.breed}</Text>
-                <Text style={styles.petAge}>{currentPet.age}</Text>
-                <Text style={styles.petLocation}>{currentPet.location}</Text>
+            {/* Card con swipe */}
+            <Animated.View
+              style={[
+                styles.swipeCard,
+                {
+                  transform: [
+                    { translateX: pan.x },
+                    { translateY: pan.y },
+                    { rotate: rotation.interpolate({
+                        inputRange: [-0.5, 0, 0.5],
+                        outputRange: ['-15deg', '0deg', '15deg'],
+                      })
+                    }
+                  ],
+                  opacity: opacity,
+                }
+              ]}
+              {...panResponder.panHandlers}
+            >
+              <View style={styles.petCard}>
+                <Image 
+                  source={{ uri: currentPet.image || 'https://via.placeholder.com/300x200/4ECDC4/FFFFFF?text=🐾' }}
+                  style={styles.petImage}
+                  resizeMode="cover"
+                />
                 
-                {/* Información del propietario */}
-                <View style={styles.ownerInfo}>
-                  <Text style={styles.ownerLabel}>
-                    {currentPet.ownerId === user.id ? '🏠 Tu mascota' : '👤 Propietario: ' + (currentPet.ownerEmail || 'Usuario')}
-                  </Text>
+                <View style={styles.petInfo}>
+                  <Text style={styles.petName}>{currentPet.name}</Text>
+                  <Text style={styles.petBreed}>{currentPet.breed}</Text>
+                  <Text style={styles.petAge}>{currentPet.age}</Text>
+                  <Text style={styles.petLocation}>{currentPet.location}</Text>
+                  
+                  {/* Información del propietario */}
+                  <View style={styles.ownerInfo}>
+                    <Text style={styles.ownerLabel}>
+                      {currentPet.ownerId === user.id ? '🏠 Tu mascota' : '👤 Propietario: ' + (currentPet.ownerEmail || 'Usuario')}
+                    </Text>
+                  </View>
+                  
+                  <Text style={styles.petDescription}>{currentPet.description}</Text>
                 </View>
-                
-                <Text style={styles.petDescription}>{currentPet.description}</Text>
               </View>
+              
+              {/* Indicadores de swipe mejorados */}
+              <Animated.View 
+                style={[
+                  styles.swipeIndicator, 
+                  styles.likeIndicator,
+                  {
+                    opacity: pan.x.interpolate({
+                      inputRange: [0, screenWidth * 0.2],
+                      outputRange: [0, 1],
+                      extrapolate: 'clamp',
+                    }),
+                    transform: [{
+                      scale: pan.x.interpolate({
+                        inputRange: [0, screenWidth * 0.3],
+                        outputRange: [0.8, 1.2],
+                        extrapolate: 'clamp',
+                      })
+                    }]
+                  }
+                ]}
+              >
+                <Text style={styles.indicatorText}>❤️ LIKE</Text>
+              </Animated.View>
+              
+              <Animated.View 
+                style={[
+                  styles.swipeIndicator, 
+                  styles.passIndicator,
+                  {
+                    opacity: pan.x.interpolate({
+                      inputRange: [-screenWidth * 0.2, 0],
+                      outputRange: [1, 0],
+                      extrapolate: 'clamp',
+                    }),
+                    transform: [{
+                      scale: pan.x.interpolate({
+                        inputRange: [-screenWidth * 0.3, 0],
+                        outputRange: [1.2, 0.8],
+                        extrapolate: 'clamp',
+                      })
+                    }]
+                  }
+                ]}
+              >
+                <Text style={styles.indicatorText}>💔 PASS</Text>
+              </Animated.View>
+            </Animated.View>
+
+            {/* Instrucciones de swipe mejoradas */}
+            <View style={styles.instructionsContainer}>
+              <Text style={styles.instructionsTitle}>
+                📱 Cómo usar Adopit
+              </Text>
+              <Text style={styles.instructionsText}>
+                👆 Desliza la tarjeta hacia la derecha para ❤️ LIKE
+              </Text>
+              <Text style={styles.instructionsText}>
+                👆 Desliza la tarjeta hacia la izquierda para 💔 PASS
+              </Text>
+              <Text style={styles.instructionsSubtext}>
+                O usa los botones de abajo
+              </Text>
             </View>
 
-            {/* Buttons */}
+            {/* Buttons mejorados */}
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.passButton} onPress={handlePass}>
-                <Text style={styles.buttonText}>💔 Pasar</Text>
+              <TouchableOpacity 
+                style={styles.passButton} 
+                onPress={() => swipeLeft()}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.buttonIcon}>💔</Text>
+                <Text style={styles.buttonText}>Pasar</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.infoButton} 
+                onPress={() => navigation.navigate('PetDetail', { pet: currentPet })}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.buttonIcon}>👁️</Text>
+                <Text style={styles.buttonText}>Ver más</Text>
               </TouchableOpacity>
               
               {currentPet.ownerId === user.id ? (
                 <TouchableOpacity style={[styles.likeButton, styles.disabledButton]} disabled>
-                  <Text style={styles.buttonText}>🏠 Tu mascota</Text>
+                  <Text style={styles.buttonIcon}>🏠</Text>
+                  <Text style={styles.buttonText}>Tu mascota</Text>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity style={styles.likeButton} onPress={handleLike}>
-                  <Text style={styles.buttonText}>❤️ Me gusta</Text>
+                <TouchableOpacity 
+                  style={styles.likeButton} 
+                  onPress={() => swipeRight()}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.buttonIcon}>❤️</Text>
+                  <Text style={styles.buttonText}>Me gusta</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -363,34 +569,147 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
+  swipeCard: {
+    position: 'relative',
+    width: '100%',
+    marginBottom: 20,
+  },
+  swipeIndicator: {
+    position: 'absolute',
+    top: '40%',
+    paddingHorizontal: 25,
+    paddingVertical: 12,
+    borderRadius: 30,
+    borderWidth: 4,
+    zIndex: 10,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  likeIndicator: {
+    right: 15,
+    backgroundColor: 'rgba(76, 175, 80, 0.95)',
+    borderColor: '#4CAF50',
+    transform: [{ rotate: '15deg' }],
+  },
+  passIndicator: {
+    left: 15,
+    backgroundColor: 'rgba(244, 67, 54, 0.95)',
+    borderColor: '#f44336',
+    transform: [{ rotate: '-15deg' }],
+  },
+  indicatorText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  instructionsContainer: {
+    backgroundColor: '#f8f9fa',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    marginBottom: 15,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  instructionsTitle: {
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4ECDC4',
+    marginBottom: 8,
+  },
+  instructionsText: {
+    textAlign: 'center',
+    fontSize: 14,
+    color: '#495057',
+    marginBottom: 4,
+  },
+  instructionsSubtext: {
+    textAlign: 'center',
+    fontSize: 12,
+    color: '#6c757d',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    maxWidth: 300,
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 25,
+    marginTop: 10,
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
   passButton: {
-    backgroundColor: '#e74c3c',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    elevation: 3,
+    backgroundColor: '#f44336',
+    paddingVertical: 18,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 90,
+    elevation: 4,
+    shadowColor: '#f44336',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    marginHorizontal: 5,
+  },
+  infoButton: {
+    backgroundColor: '#17a2b8',
+    paddingVertical: 18,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 90,
+    elevation: 4,
+    shadowColor: '#17a2b8',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    marginHorizontal: 5,
   },
   likeButton: {
-    backgroundColor: '#4ECDC4',
-    paddingHorizontal: 30,
-    paddingVertical: 15,
-    borderRadius: 25,
-    elevation: 3,
+    backgroundColor: '#4CAF50',
+    paddingVertical: 18,
+    paddingHorizontal: 25,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 90,
+    elevation: 4,
+    shadowColor: '#4CAF50',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    marginHorizontal: 5,
   },
   disabledButton: {
     backgroundColor: '#6c757d',
     opacity: 0.6,
   },
+  buttonIcon: {
+    fontSize: 24,
+    marginBottom: 8,
+  },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    textAlign: 'center',
   },
   toggleContainer: {
     backgroundColor: '#fff',
