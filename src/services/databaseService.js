@@ -332,7 +332,7 @@ export const databaseService = {
   },
 
   // Obtener mascotas filtradas para Adopit (excluyendo las ya vistas)
-  async getPetsForTinder(userId) {
+  async getPetsForAdopit(userId) {
     try {
       const availablePets = await this.getAvailablePets(userId);
       const swipeHistory = await this.getSwipeHistory(userId);

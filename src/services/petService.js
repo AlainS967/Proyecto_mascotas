@@ -1,6 +1,6 @@
 import { databaseService } from './databaseService';
 
-export const petService = {
+const petService = {
   // Inicializar el servicio
   async initialize() {
     try {
@@ -246,12 +246,12 @@ export const petService = {
   },
 
   // Obtener mascotas para Adopit
-  async getPetsForTinder(userId) {
+  async getPetsForAdopit(userId) {
     try {
       if (!userId) {
         throw new Error('ID de usuario requerido');
       }
-      return await databaseService.getPetsForTinder(userId);
+      return await databaseService.getPetsForAdopit(userId);
     } catch (error) {
       console.error('Error obteniendo mascotas para Adopit:', error);
       return [];
@@ -377,3 +377,5 @@ export const petService = {
     }
   },
 };
+
+export default petService;

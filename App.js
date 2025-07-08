@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
+import { databaseService } from './src/services/databaseService';
 
 // Screens
 import LoginScreen from './src/screens/LoginScreen';
@@ -14,6 +15,7 @@ import EditPetScreen from './src/screens/EditPetScreen';
 import AddPetScreen from './src/screens/AddPetScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import PetDetailScreen from './src/screens/PetDetailScreen';
+import DiagnosticScreen from './src/screens/DiagnosticScreen';
 import LoadingScreen from './src/components/LoadingScreen';
 
 const Stack = createStackNavigator();
@@ -47,6 +49,7 @@ const AppStack = () => (
     <Stack.Screen name="AddPet" component={AddPetScreen} />
     <Stack.Screen name="Favorites" component={FavoritesScreen} />
     <Stack.Screen name="PetDetail" component={PetDetailScreen} />
+    <Stack.Screen name="Diagnostic" component={DiagnosticScreen} />
   </Stack.Navigator>
 );
 
@@ -67,6 +70,20 @@ const AppNavigation = () => {
 
 // Main App component
 const App = () => {
+  useEffect(() => {
+    // Inicializar la base de datos al arrancar la app
+    const initializeApp = async () => {
+      try {
+        await databaseService.initializeDatabase();
+        console.log('Base de datos inicializada correctamente');
+      } catch (error) {
+        console.error('Error inicializando la base de datos:', error);
+      }
+    };
+    
+    initializeApp();
+  }, []);
+
   return (
     <AuthProvider>
       <AppNavigation />

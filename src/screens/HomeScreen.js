@@ -152,6 +152,16 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
             
             <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('Diagnostic')}
+            >
+              <View style={styles.actionIcon}>
+                <Text style={styles.actionIconText}>🔧</Text>
+              </View>
+              <Text style={styles.actionText}>Diagnóstico</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
               style={[styles.actionButton, styles.logoutAction]}
               onPress={handleLogout}
             >
@@ -315,7 +325,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   actionButton: {
-    width: '48%',
+    width: '30%',
     backgroundColor: '#f8f9fa',
     borderRadius: 10,
     padding: 15,
