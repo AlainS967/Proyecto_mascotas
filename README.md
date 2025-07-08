@@ -1,11 +1,12 @@
-# Sistema de Autenticación Completo - React Native Expo
+# 🐾 Pet Adoption App - Sistema de Adopción de Mascotas
 
-Este proyecto implementa un sistema de autenticación completo con React Native y Expo, incluyendo todas las funcionalidades necesarias para el manejo de usuarios.
+Este proyecto implementa un sistema completo de adopción de mascotas con React Native y Expo, incluyendo autenticación, slides deslizables, y edición de perfiles.
 
 ## 🚀 Características Principales
 
 ### ✅ Funcionalidades Implementadas
 
+#### 🔐 Sistema de Autenticación
 - **Login de Usuario**: Pantalla de inicio de sesión con validación
 - **Registro de Usuario**: Crear nuevas cuentas con validación de datos
 - **Recuperación de Contraseña**: Sistema de recuperación por email
@@ -15,6 +16,16 @@ Este proyecto implementa un sistema de autenticación completo con React Native 
 - **Pantalla de Carga**: Loading screen durante la verificación de autenticación
 - **Dashboard/Home**: Pantalla principal para usuarios autenticados
 - **Logout Seguro**: Cierre de sesión con confirmación
+
+#### 🐕 Sistema de Adopción de Mascotas
+- **Catálogo Deslizable**: Slides fluidos para navegar entre mascotas
+- **Filtros Avanzados**: Filtrar por tipo, raza, ubicación y características
+- **Búsqueda en Tiempo Real**: Encontrar mascotas por nombre, raza o ubicación
+- **Sistema de Favoritos**: Guardar y gestionar mascotas favoritas
+- **Perfiles Editables**: Modificar información completa de mascotas
+- **Galería de Imágenes**: Múltiples fotos con zoom y navegación
+- **Agregar Mascotas**: Formulario completo para nuevas mascotas
+- **Contacto Directo**: Integración con llamadas, email y WhatsApp
 
 ### 🛡️ Seguridad
 

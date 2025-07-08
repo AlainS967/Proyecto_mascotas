@@ -6,12 +6,17 @@ export { AuthProvider, useAuth } from './context/AuthContext';
 
 // Services
 export { authService } from './services/authService';
+export { petService } from './services/petService';
 
 // Screens
 export { default as LoginScreen } from './screens/LoginScreen';
 export { default as RegisterScreen } from './screens/RegisterScreen';
 export { default as ForgotPasswordScreen } from './screens/ForgotPasswordScreen';
 export { default as HomeScreen } from './screens/HomeScreen';
+export { default as PetAdoptionScreen } from './screens/PetAdoptionScreen';
+export { default as PetDetailScreen } from './screens/PetDetailScreen';
+export { default as AddPetScreen } from './screens/AddPetScreen';
+export { default as FavoritesScreen } from './screens/FavoritesScreen';
 
 // Components
 export { default as LoadingScreen } from './components/LoadingScreen';
