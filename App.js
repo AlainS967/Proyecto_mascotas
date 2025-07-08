@@ -10,6 +10,7 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import PetAdoptionScreen from './src/screens/PetAdoptionScreen';
+import AdopitSimpleScreen from './src/screens/AdopitSimpleScreen';
 import MyPetsScreen from './src/screens/MyPetsScreen';
 import EditPetScreen from './src/screens/EditPetScreen';
 import AddPetScreen from './src/screens/AddPetScreen';
@@ -43,7 +44,8 @@ const AppStack = () => (
     }}
   >
     <Stack.Screen name="Home" component={HomeScreen} />
-    <Stack.Screen name="PetAdoption" component={PetAdoptionScreen} />
+    <Stack.Screen name="PetAdoption" component={AdopitSimpleScreen} />
+    <Stack.Screen name="PetAdoptionOriginal" component={PetAdoptionScreen} />
     <Stack.Screen name="MyPets" component={MyPetsScreen} />
     <Stack.Screen name="EditPet" component={EditPetScreen} />
     <Stack.Screen name="AddPet" component={AddPetScreen} />
