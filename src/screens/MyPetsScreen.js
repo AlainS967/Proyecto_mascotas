@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { petService } from '../services/petService';
+import petService from '../services/petService';
 
 const MyPetsScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -30,11 +30,20 @@ const MyPetsScreen = ({ navigation }) => {
 
   const loadUserPets = async () => {
     try {
+      console.log('🔄 MyPetsScreen: Cargando mascotas del usuario...');
+      console.log('👤 Usuario ID:', user?.id);
+      console.log('📧 Usuario email:', user?.email);
+      
       setLoading(true);
       const userPets = await petService.getUserPets(user.id);
+      console.log('🐕 Mascotas obtenidas:', userPets);
+      console.log('📊 Número de mascotas:', userPets.length);
+      
       setPets(userPets);
+      console.log('✅ Mascotas establecidas en estado');
     } catch (error) {
-      console.error('Error cargando mascotas:', error);
+      console.error('❌ Error cargando mascotas en MyPetsScreen:', error);
+      console.error('❌ Stack:', error.stack);
       Alert.alert('Error', 'No se pudieron cargar tus mascotas');
     } finally {
       setLoading(false);
@@ -55,6 +64,10 @@ const MyPetsScreen = ({ navigation }) => {
     await loadUserPets();
     await loadUserStats();
     setRefreshing(false);
+  };
+
+  const handleViewDetails = (pet) => {
+    navigation.navigate('PetDetail', { pet });
   };
 
   const handleEditPet = (pet) => {
@@ -91,8 +104,22 @@ const MyPetsScreen = ({ navigation }) => {
     }
   };
 
-  const handleViewDetails = (pet) => {
-    navigation.navigate('PetDetail', { pet, canEdit: true });
+  const showMultiplePetsInfo = () => {
+    const breeds = [...new Set(pets.map(p => p.breed))].join(', ');
+    const avgAge = pets.reduce((sum, pet) => {
+      const ageNum = parseInt(pet.age) || 0;
+      return sum + ageNum;
+    }, 0) / pets.length;
+    
+    Alert.alert(
+      'Información de tus Mascotas',
+      `Tienes ${pets.length} mascotas registradas:\n\n` +
+      `Razas: ${breeds}\n` +
+      `Edad promedio: ${avgAge.toFixed(1)} años\n` +
+      `Disponibles para adopción: ${pets.filter(p => p.adoptionStatus === 'available').length}\n\n` +
+      `Cada mascota aparece independientemente en el sistema Adopit y puede recibir likes y favoritos por separado.`,
+      [{ text: 'Entendido', style: 'default' }]
+    );
   };
 
   const getStatusColor = (status) => {
@@ -188,8 +215,15 @@ const MyPetsScreen = ({ navigation }) => {
     <View style={styles.emptyState}>
       <Text style={styles.emptyTitle}>🐾 No tienes mascotas registradas</Text>
       <Text style={styles.emptySubtitle}>
-        Agrega tu primera mascota para que otros usuarios puedan conocerla
+        Puedes agregar múltiples mascotas para que otros usuarios las conozcan.
+        Cada mascota tendrá su propio perfil único con fotos, descripción y características.
       </Text>
+      <View style={styles.emptyFeatures}>
+        <Text style={styles.emptyFeature}>✨ Perfiles únicos para cada mascota</Text>
+        <Text style={styles.emptyFeature}>📸 Fotos y descripciones personalizadas</Text>
+        <Text style={styles.emptyFeature}>🎯 Aparecerán en el sistema Adopit</Text>
+        <Text style={styles.emptyFeature}>❤️ Otros usuarios podrán agregarlas a favoritos</Text>
+      </View>
       <TouchableOpacity style={styles.addFirstPetButton} onPress={handleAddPet}>
         <Text style={styles.addFirstPetText}>➕ Agregar Mi Primera Mascota</Text>
       </TouchableOpacity>
@@ -215,17 +249,44 @@ const MyPetsScreen = ({ navigation }) => {
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.totalPets}</Text>
-          <Text style={styles.statLabel}>Total</Text>
+          <Text style={styles.statNumber}>{pets.length}</Text>
+          <Text style={styles.statLabel}>Mis Mascotas</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statNumber}>{stats.activePets}</Text>
-          <Text style={styles.statLabel}>Activas</Text>
+          <Text style={styles.statNumber}>{pets.filter(p => p.adoptionStatus === 'available').length}</Text>
+          <Text style={styles.statLabel}>Disponibles</Text>
         </View>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{stats.totalFavorites}</Text>
           <Text style={styles.statLabel}>Favoritos</Text>
         </View>
+      </View>
+
+      {/* Multiple Pets Info */}
+      {pets.length > 1 && (
+        <View style={styles.multiplePetsInfo}>
+          <Text style={styles.multiplePetsText}>
+            🎉 ¡Tienes {pets.length} mascotas registradas! Cada una tiene su propio perfil único.
+          </Text>
+        </View>
+      )}
+
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <TouchableOpacity style={styles.quickActionButton} onPress={handleAddPet}>
+          <Text style={styles.quickActionIcon}>➕</Text>
+          <Text style={styles.quickActionText}>Agregar Nueva Mascota</Text>
+        </TouchableOpacity>
+        
+        {pets.length > 0 && (
+          <TouchableOpacity 
+            style={[styles.quickActionButton, styles.viewAllButton]} 
+            onPress={showMultiplePetsInfo}
+          >
+            <Text style={styles.quickActionIcon}>📋</Text>
+            <Text style={styles.quickActionText}>Gestionar Todas ({pets.length})</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Content */}
@@ -345,8 +406,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
     textAlign: 'center',
+    marginBottom: 20,
     lineHeight: 22,
+  },
+  emptyFeatures: {
+    alignSelf: 'stretch',
     marginBottom: 30,
+  },
+  emptyFeature: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 8,
+    paddingLeft: 10,
   },
   addFirstPetButton: {
     backgroundColor: '#28a745',
@@ -455,6 +526,50 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#999',
     marginBottom: 2,
+  },
+  multiplePetsInfo: {
+    backgroundColor: '#e8f5e8',
+    padding: 15,
+    marginHorizontal: 16,
+    marginBottom: 15,
+    borderRadius: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4CAF50',
+  },
+  multiplePetsText: {
+    fontSize: 14,
+    color: '#2e7d32',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  quickActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingBottom: 15,
+    gap: 10,
+  },
+  quickActionButton: {
+    flex: 1,
+    backgroundColor: '#2196F3',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    gap: 8,
+  },
+  viewAllButton: {
+    backgroundColor: '#4CAF50',
+  },
+  quickActionIcon: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  quickActionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

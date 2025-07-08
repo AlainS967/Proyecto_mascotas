@@ -24,12 +24,21 @@ const petService = {
   // Obtener mascotas del usuario
   async getUserPets(userId) {
     try {
+      console.log('🔄 petService.getUserPets iniciado');
+      console.log('👤 userId:', userId);
+      
       if (!userId) {
         throw new Error('ID de usuario requerido');
       }
-      return await databaseService.getUserPets(userId);
+      
+      console.log('🔄 Llamando a databaseService.getUserPets...');
+      const result = await databaseService.getUserPets(userId);
+      console.log('✅ Resultado de databaseService.getUserPets:', result);
+      console.log('📊 Número de mascotas del usuario:', result?.length || 0);
+      
+      return result;
     } catch (error) {
-      console.error('Error obteniendo mascotas del usuario:', error);
+      console.error('❌ Error en petService.getUserPets:', error);
       throw error;
     }
   },
@@ -50,8 +59,15 @@ const petService = {
   // Crear nueva mascota
   async createPet(petData, userId, userEmail) {
     try {
+      console.log('🔄 petService.createPet iniciado');
+      console.log('📋 petData:', petData);
+      console.log('👤 userId:', userId);
+      console.log('📧 userEmail:', userEmail);
+
       // Validaciones
+      console.log('🔍 Validando datos de mascota...');
       this.validatePetData(petData);
+      console.log('✅ Validación de datos completada');
       
       if (!userId) {
         throw new Error('ID de usuario requerido');
@@ -61,9 +77,13 @@ const petService = {
         throw new Error('Email de usuario requerido');
       }
 
-      return await databaseService.createPet(petData, userId, userEmail);
+      console.log('🔄 Llamando a databaseService.createPet...');
+      const result = await databaseService.createPet(petData, userId, userEmail);
+      console.log('✅ Mascota creada en base de datos:', result);
+      
+      return result;
     } catch (error) {
-      console.error('Error creando mascota:', error);
+      console.error('❌ Error creando mascota en petService:', error);
       throw error;
     }
   },
@@ -71,8 +91,15 @@ const petService = {
   // Actualizar mascota
   async updatePet(petId, petData, userId) {
     try {
+      console.log('🔄 petService.updatePet iniciado');
+      console.log('🆔 petId:', petId);
+      console.log('📋 petData:', petData);
+      console.log('👤 userId:', userId);
+
       // Validaciones
+      console.log('🔍 Validando datos de mascota (modo actualización)...');
       this.validatePetData(petData, false); // false = no requerir todos los campos
+      console.log('✅ Validación de datos completada');
       
       if (!petId) {
         throw new Error('ID de mascota requerido');
@@ -82,9 +109,13 @@ const petService = {
         throw new Error('ID de usuario requerido');
       }
 
-      return await databaseService.updatePet(petId, petData, userId);
+      console.log('🔄 Llamando a databaseService.updatePet...');
+      const result = await databaseService.updatePet(petId, petData, userId);
+      console.log('✅ Mascota actualizada en base de datos:', result);
+
+      return result;
     } catch (error) {
-      console.error('Error actualizando mascota:', error);
+      console.error('❌ Error actualizando mascota en petService:', error);
       throw error;
     }
   },
@@ -174,12 +205,21 @@ const petService = {
   // Gestión de favoritos
   async getFavorites(userId) {
     try {
+      console.log('💖 petService.getFavorites iniciado');
+      console.log('👤 userId:', userId);
+      
       if (!userId) {
         throw new Error('ID de usuario requerido');
       }
-      return await databaseService.getFavoritePets(userId);
+      
+      console.log('🔄 Llamando a databaseService.getFavoritePets...');
+      const result = await databaseService.getFavoritePets(userId);
+      console.log('✅ Resultado de getFavoritePets:', result);
+      console.log('📊 Número de favoritos:', result?.length || 0);
+      
+      return result;
     } catch (error) {
-      console.error('Error obteniendo favoritos:', error);
+      console.error('❌ Error en petService.getFavorites:', error);
       return [];
     }
   },

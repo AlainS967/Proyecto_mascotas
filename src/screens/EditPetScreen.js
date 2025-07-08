@@ -13,7 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { petService } from '../services/petService';
+import petService from '../services/petService';
 
 const EditPetScreen = ({ navigation, route }) => {
   const { user } = useAuth();
@@ -115,29 +115,72 @@ const EditPetScreen = ({ navigation, route }) => {
   };
 
   const handleSave = async () => {
-    if (!validateForm()) {
-      Alert.alert('Error', 'Por favor corrige los errores en el formulario');
+    console.log('🔄 Intentando guardar mascota...');
+    console.log('📋 Datos del formulario:', JSON.stringify(formData, null, 2));
+    console.log('👤 Usuario:', user?.id, user?.email);
+    console.log('✏️ Modo edición:', isEditing);
+    console.log('🐕 Pet datos (si editando):', pet ? JSON.stringify(pet, null, 2) : 'N/A');
+
+    // Verificar que tenemos contexto de autenticación
+    if (!user || !user.id) {
+      console.error('❌ No hay usuario autenticado');
+      Alert.alert('Error', 'No hay usuario autenticado. Por favor, inicia sesión nuevamente.');
+      return;
+    }
+
+    console.log('🔍 Iniciando validación del formulario...');
+    const validationResult = validateForm();
+    console.log('📝 Resultado de validación:', validationResult);
+    console.log('❌ Errores encontrados:', errors);
+
+    if (!validationResult) {
+      console.log('❌ Validación falló:', errors);
+      const errorMessages = Object.values(errors).filter(error => error).join('\n');
+      Alert.alert('Error', `Por favor corrige los errores en el formulario:\n${errorMessages}`);
       return;
     }
 
     try {
       setLoading(true);
+      console.log('🔄 Iniciando proceso de guardado...');
 
       if (isEditing) {
-        await petService.updatePet(pet.id, formData, user.id);
+        console.log('✏️ MODO EDICIÓN');
+        console.log('🆔 ID de mascota a actualizar:', pet.id);
+        console.log('👤 ID de usuario:', user.id);
+        
+        const result = await petService.updatePet(pet.id, formData, user.id);
+        console.log('✅ Resultado de actualización:', result);
+        
         Alert.alert('Éxito', 'Mascota actualizada correctamente', [
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       } else {
-        await petService.createPet(formData, user.id, user.email);
+        console.log('➕ MODO CREAR NUEVA');
+        console.log('👤 ID de usuario:', user.id);
+        console.log('📧 Email de usuario:', user.email);
+        
+        const newPet = await petService.createPet(formData, user.id, user.email);
+        console.log('✅ Resultado de creación:', newPet);
+        
         Alert.alert('Éxito', 'Mascota creada correctamente', [
           { text: 'OK', onPress: () => navigation.goBack() }
         ]);
       }
     } catch (error) {
-      Alert.alert('Error', error.message || 'No se pudo guardar la mascota');
+      console.error('❌ Error guardando mascota:', error);
+      console.error('❌ Mensaje del error:', error.message);
+      console.error('❌ Stack trace:', error.stack);
+      
+      let errorMessage = 'No se pudo guardar la mascota';
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Error', `Error al guardar: ${errorMessage}`);
     } finally {
       setLoading(false);
+      console.log('🏁 Proceso de guardado finalizado');
     }
   };
 
@@ -180,6 +223,18 @@ const EditPetScreen = ({ navigation, route }) => {
         </View>
 
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Info sobre múltiples mascotas */}
+          {!isEditing && (
+            <View style={styles.multiPetInfo}>
+              <Text style={styles.multiPetTitle}>🐾 Agregar Nueva Mascota</Text>
+              <Text style={styles.multiPetText}>
+                Puedes agregar todas las mascotas que quieras. Cada una tendrá su propio perfil 
+                único y aparecerá independientemente en el sistema Adopit para que otros usuarios 
+                puedan conocerlas y agregarlas a sus favoritos.
+              </Text>
+            </View>
+          )}
+          
           {/* Información básica */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📋 Información Básica</Text>
@@ -572,6 +627,26 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 50,
+  },
+  multiPetInfo: {
+    backgroundColor: '#e3f2fd',
+    padding: 16,
+    margin: 16,
+    marginTop: 0,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  multiPetTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1976d2',
+    marginBottom: 8,
+  },
+  multiPetText: {
+    fontSize: 14,
+    color: '#1565c0',
+    lineHeight: 20,
   },
 });
 

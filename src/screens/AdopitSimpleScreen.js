@@ -25,19 +25,31 @@ const AdopitSimpleScreen = ({ navigation }) => {
   const loadPets = async () => {
     try {
       setLoading(true);
-      console.log('🔄 Cargando mascotas...');
+      console.log('🔄 AdopitSimpleScreen: Cargando mascotas...');
+      console.log('👤 Usuario ID:', user?.id);
+      console.log('📧 Usuario email:', user?.email);
       
       if (!user?.id) {
         console.error('❌ No hay usuario autenticado');
+        Alert.alert('Error', 'No hay usuario autenticado');
         setLoading(false);
         return;
       }
       
+      console.log('🔄 Llamando a petService.getPetsForAdopit...');
       const adoptionPets = await petService.getPetsForAdopit(user.id);
-      console.log('✅ Mascotas cargadas:', adoptionPets.length);
+      console.log('🐕 Mascotas para adopción obtenidas:', adoptionPets);
+      console.log('📊 Número de mascotas disponibles:', adoptionPets?.length || 0);
+      
+      if (adoptionPets && adoptionPets.length > 0) {
+        console.log('🏷️ IDs de mascotas:', adoptionPets.map(p => `${p.id}(${p.name})`).join(', '));
+      }
+      
       setPets(adoptionPets || []);
+      console.log('✅ Mascotas establecidas en estado');
     } catch (error) {
-      console.error('❌ Error cargando mascotas:', error);
+      console.error('❌ Error cargando mascotas en AdopitSimpleScreen:', error);
+      console.error('❌ Stack:', error.stack);
       Alert.alert('Error', 'Error cargando mascotas: ' + error.message);
     } finally {
       setLoading(false);

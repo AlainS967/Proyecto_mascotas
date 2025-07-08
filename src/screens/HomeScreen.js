@@ -162,6 +162,16 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
             
             <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('TestSave')}
+            >
+              <View style={styles.actionIcon}>
+                <Text style={styles.actionIconText}>🧪</Text>
+              </View>
+              <Text style={styles.actionText}>Prueba Guardado</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
               style={[styles.actionButton, styles.logoutAction]}
               onPress={handleLogout}
             >

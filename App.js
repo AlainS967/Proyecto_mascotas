@@ -17,6 +17,7 @@ import AddPetScreen from './src/screens/AddPetScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
 import PetDetailScreen from './src/screens/PetDetailScreen';
 import DiagnosticScreen from './src/screens/DiagnosticScreen';
+import TestSaveScreen from './src/screens/TestSaveScreen';
 import LoadingScreen from './src/components/LoadingScreen';
 
 const Stack = createStackNavigator();
@@ -52,6 +53,7 @@ const AppStack = () => (
     <Stack.Screen name="Favorites" component={FavoritesScreen} />
     <Stack.Screen name="PetDetail" component={PetDetailScreen} />
     <Stack.Screen name="Diagnostic" component={DiagnosticScreen} />
+    <Stack.Screen name="TestSave" component={TestSaveScreen} />
   </Stack.Navigator>
 );
 

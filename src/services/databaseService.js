@@ -81,23 +81,52 @@ export const databaseService = {
   // Inicializar la base de datos
   async initializeDatabase() {
     try {
+      console.log('🔧 Inicializando base de datos...');
       const existingPets = await AsyncStorage.getItem(PETS_DATABASE_KEY);
+      console.log('🔍 Verificando datos existentes:', existingPets ? 'Encontrados' : 'No encontrados');
+      
       if (!existingPets) {
+        console.log('📝 Creando base de datos inicial con mascotas por defecto...');
         await AsyncStorage.setItem(PETS_DATABASE_KEY, JSON.stringify(INITIAL_PETS_DATABASE));
+        console.log('✅ Base de datos inicializada con', INITIAL_PETS_DATABASE.length, 'mascotas');
+        
+        // Verificar que se guardó correctamente
+        const verification = await AsyncStorage.getItem(PETS_DATABASE_KEY);
+        const verificationData = verification ? JSON.parse(verification) : [];
+        console.log('🎯 Verificación: mascotas guardadas =', verificationData.length);
+      } else {
+        console.log('✅ Base de datos ya existe, no se necesita inicialización');
       }
     } catch (error) {
-      console.error('Error inicializando base de datos:', error);
-      throw new Error('Error al inicializar la base de datos');
+      console.error('❌ Error inicializando base de datos:', error);
+      console.error('❌ Stack:', error.stack);
+      throw new Error(`Error al inicializar la base de datos: ${error.message}`);
     }
   },
 
   // Obtener todas las mascotas
   async getAllPets() {
     try {
+      console.log('📋 Obteniendo todas las mascotas de AsyncStorage...');
       const petsData = await AsyncStorage.getItem(PETS_DATABASE_KEY);
-      return petsData ? JSON.parse(petsData) : [];
+      console.log('💾 Datos crudos de AsyncStorage:', petsData ? 'Datos encontrados' : 'No hay datos');
+      
+      if (!petsData) {
+        console.log('🔄 No hay datos, inicializando con datos por defecto...');
+        await this.initializeDatabase();
+        const newData = await AsyncStorage.getItem(PETS_DATABASE_KEY);
+        const pets = newData ? JSON.parse(newData) : [];
+        console.log('📊 Mascotas después de inicialización:', pets.length);
+        return pets;
+      }
+      
+      const pets = JSON.parse(petsData);
+      console.log('📊 Total de mascotas encontradas:', pets.length);
+      console.log('🐕 IDs de mascotas:', pets.map(p => `${p.id}(${p.name})`).join(', '));
+      return pets;
     } catch (error) {
-      console.error('Error obteniendo mascotas:', error);
+      console.error('❌ Error obteniendo mascotas:', error);
+      console.error('❌ Stack:', error.stack);
       return [];
     }
   },
@@ -120,10 +149,25 @@ export const databaseService = {
   // Obtener mascotas de un usuario específico
   async getUserPets(userId) {
     try {
+      console.log('🔄 databaseService.getUserPets iniciado');
+      console.log('👤 userId buscado:', userId);
+      
       const allPets = await this.getAllPets();
-      return allPets.filter(pet => pet.ownerId === userId && pet.isActive);
+      console.log('📋 Total de mascotas en BD:', allPets.length);
+      
+      const userPets = allPets.filter(pet => {
+        const isOwner = pet.ownerId === userId;
+        const isActive = pet.isActive;
+        console.log(`🐕 Mascota ${pet.id}(${pet.name}): owner=${pet.ownerId}, isOwner=${isOwner}, isActive=${isActive}`);
+        return isOwner && isActive;
+      });
+      
+      console.log('✅ Mascotas del usuario encontradas:', userPets.length);
+      console.log('🏷️ IDs de mascotas del usuario:', userPets.map(p => `${p.id}(${p.name})`).join(', '));
+      
+      return userPets;
     } catch (error) {
-      console.error('Error obteniendo mascotas del usuario:', error);
+      console.error('❌ Error en databaseService.getUserPets:', error);
       return [];
     }
   },
@@ -142,16 +186,37 @@ export const databaseService = {
   // Crear una nueva mascota
   async createPet(petData, userId, userEmail) {
     try {
+      console.log('🏭 databaseService.createPet iniciado');
+      console.log('📋 petData recibido:', JSON.stringify(petData, null, 2));
+      console.log('👤 userId:', userId);
+      console.log('📧 userEmail:', userEmail);
+
+      // Validaciones básicas
+      if (!petData) {
+        throw new Error('Datos de mascota requeridos');
+      }
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+      if (!userEmail) {
+        throw new Error('Email de usuario requerido');
+      }
+
+      console.log('🔄 Obteniendo todas las mascotas existentes...');
       const allPets = await this.getAllPets();
+      console.log('📊 Número de mascotas existentes:', allPets.length);
       
       // Generar ID único
+      console.log('🔧 Generando ID único...');
       const petId = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.SHA256,
         `${userId}_${Date.now()}_${Math.random()}`
       );
+      const shortId = petId.substring(0, 8);
+      console.log('🆔 ID generado:', shortId);
 
       const newPet = {
-        id: petId.substring(0, 8),
+        id: shortId,
         ...petData,
         ownerId: userId,
         ownerEmail: userEmail,
@@ -165,30 +230,67 @@ export const databaseService = {
         medicalInfo: petData.medicalInfo ?? 'No especificado',
       };
 
+      console.log('🐕 Nueva mascota preparada:', JSON.stringify(newPet, null, 2));
+
       allPets.push(newPet);
+      console.log('📊 Total de mascotas después de agregar:', allPets.length);
+
+      console.log('💾 Guardando en AsyncStorage...');
       await AsyncStorage.setItem(PETS_DATABASE_KEY, JSON.stringify(allPets));
+      console.log('✅ Guardado en AsyncStorage completado');
+      
+      // Verificar que se guardó correctamente
+      console.log('🔍 Verificando guardado...');
+      const savedPets = await AsyncStorage.getItem(PETS_DATABASE_KEY);
+      const parsedSavedPets = JSON.parse(savedPets);
+      const foundPet = parsedSavedPets.find(p => p.id === shortId);
+      console.log('🎯 Mascota encontrada en verificación:', foundPet ? 'SÍ' : 'NO');
       
       return newPet;
     } catch (error) {
-      console.error('Error creando mascota:', error);
-      throw new Error('Error al crear la mascota');
+      console.error('❌ Error en databaseService.createPet:', error);
+      console.error('❌ Stack completo:', error.stack);
+      throw new Error(`Error al crear la mascota: ${error.message}`);
     }
   },
 
   // Actualizar una mascota existente
   async updatePet(petId, petData, userId) {
     try {
+      console.log('🔄 databaseService.updatePet iniciado');
+      console.log('🆔 petId:', petId);
+      console.log('📋 petData:', JSON.stringify(petData, null, 2));
+      console.log('👤 userId:', userId);
+
+      // Validaciones básicas
+      if (!petId) {
+        throw new Error('ID de mascota requerido');
+      }
+      if (!petData) {
+        throw new Error('Datos de mascota requeridos');
+      }
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+
+      console.log('🔄 Obteniendo todas las mascotas...');
       const allPets = await this.getAllPets();
+      console.log('📊 Total de mascotas en BD:', allPets.length);
+      
       const petIndex = allPets.findIndex(pet => pet.id === petId);
+      console.log('🎯 Índice de mascota encontrada:', petIndex);
       
       if (petIndex === -1) {
+        console.error('❌ Mascota no encontrada con ID:', petId);
         throw new Error('Mascota no encontrada');
       }
 
       const existingPet = allPets[petIndex];
+      console.log('🐕 Mascota existente:', JSON.stringify(existingPet, null, 2));
       
       // Verificar que el usuario sea el propietario
       if (existingPet.ownerId !== userId) {
+        console.error('❌ Usuario no autorizado. Owner:', existingPet.ownerId, 'User:', userId);
         throw new Error('No tienes permisos para editar esta mascota');
       }
 
@@ -202,12 +304,25 @@ export const databaseService = {
         dateUpdated: new Date().toISOString(),
       };
 
+      console.log('🐕 Mascota actualizada:', JSON.stringify(updatedPet, null, 2));
+
       allPets[petIndex] = updatedPet;
+      console.log('💾 Guardando en AsyncStorage...');
       await AsyncStorage.setItem(PETS_DATABASE_KEY, JSON.stringify(allPets));
+      console.log('✅ Guardado completado');
+      
+      // Verificar que se guardó correctamente
+      console.log('🔍 Verificando actualización...');
+      const savedPets = await AsyncStorage.getItem(PETS_DATABASE_KEY);
+      const parsedSavedPets = JSON.parse(savedPets);
+      const verifyPet = parsedSavedPets.find(p => p.id === petId);
+      console.log('🎯 Mascota verificada:', verifyPet ? 'SÍ' : 'NO');
+      console.log('📅 Fecha de actualización verificada:', verifyPet?.dateUpdated);
       
       return updatedPet;
     } catch (error) {
-      console.error('Error actualizando mascota:', error);
+      console.error('❌ Error en databaseService.updatePet:', error);
+      console.error('❌ Stack completo:', error.stack);
       throw error;
     }
   },
@@ -248,10 +363,19 @@ export const databaseService = {
   // Gestión de favoritos
   async getFavorites(userId) {
     try {
+      console.log('💖 databaseService.getFavorites (IDs) iniciado');
+      console.log('👤 userId:', userId);
+      console.log('🔑 Clave de AsyncStorage:', `${FAVORITES_KEY}_${userId}`);
+      
       const favoritesData = await AsyncStorage.getItem(`${FAVORITES_KEY}_${userId}`);
-      return favoritesData ? JSON.parse(favoritesData) : [];
+      console.log('💾 Datos crudos de favoritos:', favoritesData);
+      
+      const favorites = favoritesData ? JSON.parse(favoritesData) : [];
+      console.log('✅ IDs de favoritos parseados:', favorites);
+      
+      return favorites;
     } catch (error) {
-      console.error('Error obteniendo favoritos:', error);
+      console.error('❌ Error en databaseService.getFavorites:', error);
       return [];
     }
   },
@@ -284,11 +408,30 @@ export const databaseService = {
 
   async getFavoritePets(userId) {
     try {
+      console.log('💖 databaseService.getFavoritePets iniciado');
+      console.log('👤 userId:', userId);
+      
+      console.log('🔄 Obteniendo IDs de favoritos...');
       const favoriteIds = await this.getFavorites(userId);
+      console.log('💖 IDs de favoritos:', favoriteIds);
+      
+      console.log('🔄 Obteniendo todas las mascotas...');
       const allPets = await this.getAllPets();
-      return allPets.filter(pet => favoriteIds.includes(pet.id) && pet.isActive);
+      console.log('📋 Total de mascotas en BD:', allPets.length);
+      
+      const favoritePets = allPets.filter(pet => {
+        const isFavorite = favoriteIds.includes(pet.id);
+        const isActive = pet.isActive;
+        console.log(`🐕 Mascota ${pet.id}(${pet.name}): isFavorite=${isFavorite}, isActive=${isActive}`);
+        return isFavorite && isActive;
+      });
+      
+      console.log('✅ Mascotas favoritas encontradas:', favoritePets.length);
+      console.log('🏷️ Mascotas favoritas:', favoritePets.map(p => `${p.id}(${p.name})`).join(', '));
+      
+      return favoritePets;
     } catch (error) {
-      console.error('Error obteniendo mascotas favoritas:', error);
+      console.error('❌ Error en databaseService.getFavoritePets:', error);
       return [];
     }
   },

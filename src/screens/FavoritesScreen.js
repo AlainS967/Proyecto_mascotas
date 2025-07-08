@@ -11,7 +11,7 @@ import {
   Image,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { petService } from '../services/petService';
+import petService from '../services/petService';
 
 const FavoritesScreen = ({ navigation }) => {
   const { user } = useAuth();
@@ -25,12 +25,22 @@ const FavoritesScreen = ({ navigation }) => {
 
   const loadFavorites = async () => {
     try {
+      console.log('💖 FavoritesScreen: Cargando favoritos...');
+      console.log('👤 Usuario ID:', user?.id);
+      
       setLoading(true);
       await petService.initialize();
+      console.log('✅ petService inicializado');
+      
       const favoritePets = await petService.getFavorites(user.id);
+      console.log('💖 Favoritos obtenidos:', favoritePets);
+      console.log('📊 Número de favoritos:', favoritePets.length);
+      
       setFavorites(favoritePets);
+      console.log('✅ Favoritos establecidos en estado');
     } catch (error) {
-      console.error('Error cargando favoritos:', error);
+      console.error('❌ Error cargando favoritos en FavoritesScreen:', error);
+      console.error('❌ Stack:', error.stack);
       Alert.alert('Error', 'No se pudieron cargar los favoritos');
     } finally {
       setLoading(false);
