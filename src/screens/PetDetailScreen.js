@@ -5,447 +5,319 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Dimensions,
   Alert,
-  Modal,
-  TextInput,
-  Switch,
+  SafeAreaView,
+  Image,
+  Linking,
 } from 'react-native';
-import { petService } from '../services/petService';
 import { useAuth } from '../context/AuthContext';
+import { petService } from '../services/petService';
 
-const { width, height } = Dimensions.get('window');
-
-const PetDetailScreen = ({ route, navigation }) => {
-  const { pet: initialPet } = route.params;
-  const [pet, setPet] = useState(initialPet);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editedPet, setEditedPet] = useState(pet);
+const PetDetailScreen = ({ navigation, route }) => {
   const { user } = useAuth();
+  const { pet, canEdit = false } = route.params;
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    checkFavoriteStatus();
+    checkIfFavorite();
   }, []);
 
-  const checkFavoriteStatus = async () => {
+  const checkIfFavorite = async () => {
     try {
-      const favorites = await petService.getFavorites();
-      setIsFavorite(favorites.includes(pet.id));
+      const favoriteStatus = await petService.isFavorite(user.id, pet.id);
+      setIsFavorite(favoriteStatus);
     } catch (error) {
-      console.error('Error checking favorite status:', error);
+      console.error('Error verificando favorito:', error);
     }
   };
 
-  const handleFavorite = async () => {
+  const handleToggleFavorite = async () => {
     try {
+      setLoading(true);
       if (isFavorite) {
-        await petService.removeFromFavorites(pet.id);
+        await petService.removeFromFavorites(user.id, pet.id);
         setIsFavorite(false);
+        Alert.alert('Éxito', 'Mascota removida de favoritos');
       } else {
-        await petService.addToFavorites(pet.id);
+        await petService.addToFavorites(user.id, pet.id);
         setIsFavorite(true);
+        Alert.alert('Éxito', 'Mascota agregada a favoritos');
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo actualizar favoritos');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAdopt = () => {
-    Alert.alert(
-      'Adoptar a ' + pet.name,
-      '¿Estás seguro de que quieres adoptar a ' + pet.name + '?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Sí, adoptar',
-          onPress: async () => {
-            try {
-              await petService.markAsAdopted(pet.id);
-              Alert.alert(
-                '¡Felicidades!',
-                'Has adoptado a ' + pet.name + '. El refugio se pondrá en contacto contigo pronto.',
-                [{ text: 'OK', onPress: () => navigation.goBack() }]
-              );
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo completar la adopción');
-            }
-          },
-        },
-      ]
-    );
+  const handleEditPet = () => {
+    navigation.navigate('EditPet', { pet });
   };
 
-  const handleEdit = () => {
-    setEditedPet(pet);
-    setShowEditModal(true);
+  const handleContactOwner = () => {
+    const message = `Hola! Estoy interesado/a en adoptar a ${pet.name}. ¿Podrías darme más información?`;
+    const emailUrl = `mailto:${pet.ownerEmail}?subject=Interés en adoptar a ${pet.name}&body=${encodeURIComponent(message)}`;
+    
+    Linking.canOpenURL(emailUrl)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(emailUrl);
+        } else {
+          Alert.alert('Error', 'No se puede abrir la aplicación de email');
+        }
+      })
+      .catch(() => {
+        Alert.alert('Error', 'No se puede abrir la aplicación de email');
+      });
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      const updatedPet = await petService.updatePet(pet.id, editedPet);
-      if (updatedPet) {
-        setPet(updatedPet);
-        setShowEditModal(false);
-        Alert.alert('Éxito', 'Perfil de ' + pet.name + ' actualizado correctamente');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo actualizar el perfil');
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available':
+        return '#28a745';
+      case 'pending':
+        return '#ffc107';
+      case 'adopted':
+        return '#6c757d';
+      default:
+        return '#007bff';
     }
   };
 
-  const handleContact = () => {
-    Alert.alert(
-      'Contactar',
-      'Información de contacto:\n\n' +
-      'Organización: ' + pet.contactInfo.organization + '\n' +
-      'Teléfono: ' + pet.contactInfo.phone + '\n' +
-      'Email: ' + pet.contactInfo.email
-    );
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'available':
+        return 'Disponible para adopción';
+      case 'pending':
+        return 'Adopción pendiente';
+      case 'adopted':
+        return 'Ya adoptado';
+      default:
+        return 'Estado desconocido';
+    }
   };
-
-  const renderImageSlider = () => (
-    <View style={styles.imageSliderContainer}>
-      <ScrollView
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / width);
-          setCurrentImageIndex(index);
-        }}
-      >
-        {pet.images.map((image, index) => (
-          <Image key={index} source={{ uri: image }} style={styles.petImage} />
-        ))}
-      </ScrollView>
-      
-      <View style={styles.imageIndicators}>
-        {pet.images.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.indicator,
-              index === currentImageIndex && styles.activeIndicator,
-            ]}
-          />
-        ))}
-      </View>
-      
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-        <Text style={styles.backButtonText}>←</Text>
-      </TouchableOpacity>
-      
-      <TouchableOpacity style={styles.favoriteButton} onPress={handleFavorite}>
-        <Text style={styles.favoriteIcon}>{isFavorite ? '❤️' : '🤍'}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const renderEditModal = () => (
-    <Modal
-      visible={showEditModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity onPress={() => setShowEditModal(false)}>
-            <Text style={styles.modalCancelText}>Cancelar</Text>
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Editar Perfil</Text>
-          <TouchableOpacity onPress={handleSaveEdit}>
-            <Text style={styles.modalSaveText}>Guardar</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <ScrollView style={styles.modalContent}>
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Nombre</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.name}
-              onChangeText={(text) => setEditedPet({...editedPet, name: text})}
-              placeholder="Nombre de la mascota"
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Raza</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.breed}
-              onChangeText={(text) => setEditedPet({...editedPet, breed: text})}
-              placeholder="Raza"
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Edad</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.age.toString()}
-              onChangeText={(text) => setEditedPet({...editedPet, age: parseInt(text) || 0})}
-              placeholder="Edad"
-              keyboardType="numeric"
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Color</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.color}
-              onChangeText={(text) => setEditedPet({...editedPet, color: text})}
-              placeholder="Color"
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Descripción</Text>
-            <TextInput
-              style={[styles.editInput, styles.editTextArea]}
-              value={editedPet.description}
-              onChangeText={(text) => setEditedPet({...editedPet, description: text})}
-              placeholder="Descripción"
-              multiline
-              numberOfLines={4}
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Ubicación</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.location}
-              onChangeText={(text) => setEditedPet({...editedPet, location: text})}
-              placeholder="Ubicación"
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Costo de Adopción (€)</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.adoptionFee.toString()}
-              onChangeText={(text) => setEditedPet({...editedPet, adoptionFee: parseInt(text) || 0})}
-              placeholder="Costo"
-              keyboardType="numeric"
-            />
-          </View>
-          
-          <View style={styles.switchSection}>
-            <Text style={styles.editLabel}>Vacunado</Text>
-            <Switch
-              value={editedPet.vaccinated}
-              onValueChange={(value) => setEditedPet({...editedPet, vaccinated: value})}
-            />
-          </View>
-          
-          <View style={styles.switchSection}>
-            <Text style={styles.editLabel}>Esterilizado</Text>
-            <Switch
-              value={editedPet.sterilized}
-              onValueChange={(value) => setEditedPet({...editedPet, sterilized: value})}
-            />
-          </View>
-          
-          <View style={styles.editSection}>
-            <Text style={styles.editLabel}>Características (separadas por comas)</Text>
-            <TextInput
-              style={styles.editInput}
-              value={editedPet.characteristics.join(', ')}
-              onChangeText={(text) => setEditedPet({
-                ...editedPet, 
-                characteristics: text.split(',').map(char => char.trim())
-              })}
-              placeholder="Cariñoso, Juguetón, Obediente"
-            />
-          </View>
-        </ScrollView>
-      </View>
-    </Modal>
-  );
 
   return (
-    <View style={styles.container}>
-      {renderImageSlider()}
-      
-      <ScrollView style={styles.contentContainer}>
-        <View style={styles.headerSection}>
-          <View style={styles.nameSection}>
-            <Text style={styles.petName}>{pet.name}</Text>
-            <Text style={styles.petBreed}>{pet.breed}</Text>
-            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Text style={styles.backButtonText}>← Atrás</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.headerActions}>
+          {canEdit && (
+            <TouchableOpacity style={styles.editButton} onPress={handleEditPet}>
               <Text style={styles.editButtonText}>✏️ Editar</Text>
             </TouchableOpacity>
-          </View>
-          <Text style={styles.adoptionFee}>€{pet.adoptionFee}</Text>
+          )}
+          
+          {!canEdit && (
+            <TouchableOpacity
+              style={styles.favoriteButton}
+              onPress={handleToggleFavorite}
+              disabled={loading}
+            >
+              <Text style={styles.favoriteButtonText}>
+                {isFavorite ? '💔' : '❤️'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
-        
-        <View style={styles.quickInfoSection}>
-          <View style={styles.quickInfoItem}>
-            <Text style={styles.quickInfoLabel}>Edad</Text>
-            <Text style={styles.quickInfoValue}>{pet.age} año{pet.age > 1 ? 's' : ''}</Text>
-          </View>
-          <View style={styles.quickInfoItem}>
-            <Text style={styles.quickInfoLabel}>Género</Text>
-            <Text style={styles.quickInfoValue}>{pet.gender}</Text>
-          </View>
-          <View style={styles.quickInfoItem}>
-            <Text style={styles.quickInfoLabel}>Tamaño</Text>
-            <Text style={styles.quickInfoValue}>{pet.size}</Text>
-          </View>
-          <View style={styles.quickInfoItem}>
-            <Text style={styles.quickInfoLabel}>Color</Text>
-            <Text style={styles.quickInfoValue}>{pet.color}</Text>
-          </View>
+      </View>
+
+      <ScrollView style={styles.scrollView}>
+        {/* Imagen principal */}
+        <Image
+          source={{ uri: pet.image || 'https://via.placeholder.com/400x300' }}
+          style={styles.mainImage}
+        />
+
+        {/* Estado de adopción */}
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(pet.adoptionStatus) }]}>
+          <Text style={styles.statusText}>{getStatusText(pet.adoptionStatus)}</Text>
         </View>
-        
-        <View style={styles.locationSection}>
-          <Text style={styles.locationIcon}>📍</Text>
-          <Text style={styles.locationText}>{pet.location}</Text>
-        </View>
-        
+
+        {/* Información principal */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Descripción</Text>
+          <Text style={styles.petName}>{pet.name}</Text>
+          <Text style={styles.petBreed}>{pet.breed} • {pet.age}</Text>
+          <Text style={styles.petLocation}>📍 {pet.location}</Text>
+        </View>
+
+        {/* Descripción */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📝 Descripción</Text>
           <Text style={styles.description}>{pet.description}</Text>
         </View>
-        
+
+        {/* Detalles físicos */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Características</Text>
-          <View style={styles.characteristicsContainer}>
-            {pet.characteristics.map((characteristic, index) => (
-              <View key={index} style={styles.characteristicTag}>
-                <Text style={styles.characteristicText}>{characteristic}</Text>
-              </View>
-            ))}
+          <Text style={styles.sectionTitle}>🎨 Detalles Físicos</Text>
+          <View style={styles.detailsGrid}>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Género:</Text>
+              <Text style={styles.detailValue}>{pet.gender || 'No especificado'}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Peso:</Text>
+              <Text style={styles.detailValue}>{pet.weight || 'No especificado'}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Color:</Text>
+              <Text style={styles.detailValue}>{pet.color || 'No especificado'}</Text>
+            </View>
           </View>
         </View>
-        
+
+        {/* Estado de salud */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Salud</Text>
-          <View style={styles.healthSection}>
+          <Text style={styles.sectionTitle}>⚕️ Estado de Salud</Text>
+          <View style={styles.healthStatus}>
             <View style={styles.healthItem}>
-              <Text style={styles.healthIcon}>{pet.vaccinated ? '💉' : '❌'}</Text>
-              <Text style={styles.healthText}>
-                {pet.vaccinated ? 'Vacunado' : 'No vacunado'}
+              <Text style={styles.healthLabel}>
+                {pet.vaccinated ? '✅' : '❌'} Vacunado
               </Text>
             </View>
             <View style={styles.healthItem}>
-              <Text style={styles.healthIcon}>{pet.sterilized ? '✂️' : '❌'}</Text>
-              <Text style={styles.healthText}>
-                {pet.sterilized ? 'Esterilizado' : 'No esterilizado'}
+              <Text style={styles.healthLabel}>
+                {pet.sterilized ? '✅' : '❌'} Esterilizado
               </Text>
             </View>
           </View>
-          <Text style={styles.healthStatus}>Estado: {pet.healthStatus}</Text>
+          {pet.medicalInfo && (
+            <View style={styles.medicalInfo}>
+              <Text style={styles.medicalInfoTitle}>Información médica:</Text>
+              <Text style={styles.medicalInfoText}>{pet.medicalInfo}</Text>
+            </View>
+          )}
         </View>
-        
+
+        {/* Personalidad */}
+        {pet.personalityTags && pet.personalityTags.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>🐾 Personalidad</Text>
+            <View style={styles.tagsContainer}>
+              {pet.personalityTags.map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Información del propietario */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Contacto</Text>
+          <Text style={styles.sectionTitle}>👤 Información del Propietario</Text>
+          <View style={styles.ownerInfo}>
+            <Text style={styles.ownerName}>{pet.ownerName || 'Propietario'}</Text>
+            <Text style={styles.ownerEmail}>{pet.ownerEmail}</Text>
+          </View>
+        </View>
+
+        {/* Botón de contacto */}
+        {!canEdit && pet.adoptionStatus === 'available' && (
           <View style={styles.contactSection}>
-            <Text style={styles.organizationName}>{pet.contactInfo.organization}</Text>
-            <Text style={styles.contactInfo}>📞 {pet.contactInfo.phone}</Text>
-            <Text style={styles.contactInfo}>✉️ {pet.contactInfo.email}</Text>
+            <TouchableOpacity style={styles.contactButton} onPress={handleContactOwner}>
+              <Text style={styles.contactButtonText}>📧 Contactar para Adopción</Text>
+            </TouchableOpacity>
           </View>
+        )}
+
+        {/* Fechas */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>📅 Información de Registro</Text>
+          <Text style={styles.dateText}>
+            Agregado: {new Date(pet.dateAdded).toLocaleDateString('es-ES')}
+          </Text>
+          {pet.dateUpdated && (
+            <Text style={styles.dateText}>
+              Actualizado: {new Date(pet.dateUpdated).toLocaleDateString('es-ES')}
+            </Text>
+          )}
         </View>
-        
+
         <View style={styles.bottomSpacing} />
       </ScrollView>
-      
-      <View style={styles.bottomButtons}>
-        <TouchableOpacity style={styles.contactButton} onPress={handleContact}>
-          <Text style={styles.contactButtonText}>Contactar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.adoptButton} onPress={handleAdopt}>
-          <Text style={styles.adoptButtonText}>Adoptar</Text>
-        </TouchableOpacity>
-      </View>
-      
-      {renderEditModal()}
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f5f5',
   },
-  imageSliderContainer: {
-    height: height * 0.4,
-    position: 'relative',
-  },
-  petImage: {
-    width: width,
-    height: height * 0.4,
-    resizeMode: 'cover',
-  },
-  imageIndicators: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  indicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-    marginHorizontal: 4,
-  },
-  activeIndicator: {
-    backgroundColor: '#fff',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: '#fff',
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  favoriteIcon: {
-    fontSize: 20,
-  },
-  contentContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  headerSection: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    padding: 20,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#e0e0e0',
   },
-  nameSection: {
+  backButton: {
+    padding: 10,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#007bff',
+    fontWeight: '600',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  editButton: {
+    backgroundColor: '#007bff',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  editButtonText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  favoriteButton: {
+    padding: 10,
+  },
+  favoriteButtonText: {
+    fontSize: 24,
+  },
+  scrollView: {
     flex: 1,
+  },
+  mainImage: {
+    width: '100%',
+    height: 300,
+    resizeMode: 'cover',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 260,
+    right: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  section: {
+    backgroundColor: '#ffffff',
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   petName: {
     fontSize: 28,
@@ -456,225 +328,127 @@ const styles = StyleSheet.create({
   petBreed: {
     fontSize: 18,
     color: '#666',
-    marginBottom: 10,
-  },
-  editButton: {
-    backgroundColor: '#007bff',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-  },
-  editButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  adoptionFee: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#28a745',
-  },
-  quickInfoSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 20,
-    backgroundColor: '#f8f9fa',
-    marginHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 20,
-  },
-  quickInfoItem: {
-    alignItems: 'center',
-  },
-  quickInfoLabel: {
-    fontSize: 12,
-    color: '#666',
     marginBottom: 5,
   },
-  quickInfoValue: {
+  petLocation: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  locationSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  locationIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
-  locationText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  section: {
-    paddingHorizontal: 20,
-    marginBottom: 25,
+    color: '#007bff',
+    fontWeight: '600',
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
     marginBottom: 15,
   },
   description: {
     fontSize: 16,
+    color: '#555',
     lineHeight: 24,
-    color: '#666',
   },
-  characteristicsContainer: {
+  detailsGrid: {
+    gap: 10,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  detailLabel: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#333',
+  },
+  healthStatus: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 15,
+  },
+  healthItem: {
+    flex: 1,
+  },
+  healthLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
+  },
+  medicalInfo: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 8,
+  },
+  medicalInfoTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  medicalInfoText: {
+    fontSize: 14,
+    color: '#555',
+    lineHeight: 20,
+  },
+  tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 10,
   },
-  characteristicTag: {
+  tag: {
     backgroundColor: '#e3f2fd',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-    marginRight: 10,
-    marginBottom: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
-  characteristicText: {
+  tagText: {
     fontSize: 14,
     color: '#1976d2',
     fontWeight: '600',
   },
-  healthSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 15,
-  },
-  healthItem: {
-    alignItems: 'center',
-  },
-  healthIcon: {
-    fontSize: 24,
-    marginBottom: 5,
-  },
-  healthText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  healthStatus: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#28a745',
-    textAlign: 'center',
-  },
-  contactSection: {
+  ownerInfo: {
     backgroundColor: '#f8f9fa',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 8,
   },
-  organizationName: {
-    fontSize: 18,
+  ownerName: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 10,
-  },
-  contactInfo: {
-    fontSize: 16,
-    color: '#666',
     marginBottom: 5,
   },
-  bottomButtons: {
-    flexDirection: 'row',
-    padding: 20,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
+  ownerEmail: {
+    fontSize: 14,
+    color: '#007bff',
+  },
+  contactSection: {
+    backgroundColor: '#ffffff',
+    marginTop: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   contactButton: {
-    flex: 1,
-    backgroundColor: '#6c757d',
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginRight: 10,
-    alignItems: 'center',
-  },
-  contactButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  adoptButton: {
-    flex: 1,
     backgroundColor: '#28a745',
     paddingVertical: 15,
     borderRadius: 10,
     alignItems: 'center',
   },
-  adoptButtonText: {
-    color: '#fff',
-    fontSize: 16,
+  contactButtonText: {
+    fontSize: 18,
+    color: '#ffffff',
     fontWeight: 'bold',
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
   },
   bottomSpacing: {
-    height: 20,
-  },
-  // Modal styles
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  modalCancelText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  modalSaveText: {
-    fontSize: 16,
-    color: '#007bff',
-    fontWeight: '600',
-  },
-  modalContent: {
-    flex: 1,
-    padding: 20,
-  },
-  editSection: {
-    marginBottom: 20,
-  },
-  editLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  editInput: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  editTextArea: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  switchSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+    height: 30,
   },
 });
 

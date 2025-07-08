@@ -192,7 +192,7 @@ npm install
 2. **Ir a:** `http://localhost:8081`
 3. **Login:** `admin@example.com` / `admin123`
 4. **Probar:** Tocar "Adopción de Mascotas"
-5. **Swipe:** Deslizar las tarjetas como Tinder
+5. **Swipe:** Deslizar las tarjetas como Adopit
 
 **¡Tu aplicación funcionará perfectamente en el navegador! 🎉**
 
@@ -207,7 +207,7 @@ npm install
 - ✅ **Todas las funcionalidades** operativas
 
 ### 🐾 **Características disponibles:**
-- ✅ **Swipe estilo Tinder**
+- ✅ **Swipe estilo Adopit**
 - ✅ **Sistema de favoritos**
 - ✅ **Autenticación completa**
 - ✅ **Edición de perfiles**

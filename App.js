@@ -9,10 +9,11 @@ import RegisterScreen from './src/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import PetAdoptionScreen from './src/screens/PetAdoptionScreen';
-import PetAdoptionTinderScreen from './src/screens/PetAdoptionTinderScreen';
-import PetDetailScreen from './src/screens/PetDetailScreen';
+import MyPetsScreen from './src/screens/MyPetsScreen';
+import EditPetScreen from './src/screens/EditPetScreen';
 import AddPetScreen from './src/screens/AddPetScreen';
 import FavoritesScreen from './src/screens/FavoritesScreen';
+import PetDetailScreen from './src/screens/PetDetailScreen';
 import LoadingScreen from './src/components/LoadingScreen';
 
 const Stack = createStackNavigator();
@@ -41,10 +42,11 @@ const AppStack = () => (
   >
     <Stack.Screen name="Home" component={HomeScreen} />
     <Stack.Screen name="PetAdoption" component={PetAdoptionScreen} />
-    <Stack.Screen name="PetAdoptionTinder" component={PetAdoptionTinderScreen} />
-    <Stack.Screen name="PetDetail" component={PetDetailScreen} />
+    <Stack.Screen name="MyPets" component={MyPetsScreen} />
+    <Stack.Screen name="EditPet" component={EditPetScreen} />
     <Stack.Screen name="AddPet" component={AddPetScreen} />
     <Stack.Screen name="Favorites" component={FavoritesScreen} />
+    <Stack.Screen name="PetDetail" component={PetDetailScreen} />
   </Stack.Navigator>
 );
 

@@ -31,12 +31,8 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  const handlePetAdoption = () => {
-    navigation.navigate('PetAdoptionTinder');
-  };
-
   const handleProfilePress = () => {
-    Alert.alert('Perfil', 'Funcionalidad de perfil en desarrollo');
+    navigation.navigate('MyPets');
   };
 
   const handleSettingsPress = () => {
@@ -44,7 +40,11 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const handleNotificationsPress = () => {
-    Alert.alert('Notificaciones', 'Funcionalidad de notificaciones en desarrollo');
+    navigation.navigate('Favorites');
+  };
+
+  const handlePetAdoptionPress = () => {
+    navigation.navigate('PetAdoption');
   };
 
   const getCurrentDate = () => {
@@ -94,25 +94,6 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.dateText}>{getCurrentDate()}</Text>
         </View>
 
-        {/* Pet Adoption Feature Card */}
-        <TouchableOpacity style={styles.featuredCard} onPress={handlePetAdoption}>
-          <View style={styles.featuredIcon}>
-            <Text style={styles.featuredIconText}>🐕</Text>
-          </View>
-          <View style={styles.featuredContent}>
-            <Text style={styles.featuredTitle}>Adopción de Mascotas</Text>
-            <Text style={styles.featuredSubtitle}>
-              Encuentra tu compañero perfecto
-            </Text>
-            <Text style={styles.featuredDescription}>
-              Explora mascotas disponibles para adopción, guarda tus favoritos y conecta con refugios.
-            </Text>
-          </View>
-          <View style={styles.featuredArrow}>
-            <Text style={styles.featuredArrowText}>→</Text>
-          </View>
-        </TouchableOpacity>
-
         {/* User Details Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Información de Usuario</Text>
@@ -142,32 +123,32 @@ const HomeScreen = ({ navigation }) => {
           <View style={styles.actionsGrid}>
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={handlePetAdoption}
-            >
-              <View style={[styles.actionIcon, styles.adoptionIcon]}>
-                <Text style={styles.actionIconText}>�</Text>
-              </View>
-              <Text style={styles.actionText}>Adoptar Mascotas</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.actionButton}
               onPress={handleProfilePress}
             >
               <View style={styles.actionIcon}>
-                <Text style={styles.actionIconText}>👤</Text>
+                <Text style={styles.actionIconText}>�</Text>
               </View>
-              <Text style={styles.actionText}>Perfil</Text>
+              <Text style={styles.actionText}>Mis Mascotas</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
               style={styles.actionButton}
-              onPress={handleSettingsPress}
+              onPress={handlePetAdoptionPress}
             >
               <View style={styles.actionIcon}>
-                <Text style={styles.actionIconText}>⚙️</Text>
+                <Text style={styles.actionIconText}>❤️</Text>
               </View>
-              <Text style={styles.actionText}>Configuración</Text>
+              <Text style={styles.actionText}>Adopit</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={handleNotificationsPress}
+            >
+              <View style={styles.actionIcon}>
+                <Text style={styles.actionIconText}>⭐</Text>
+              </View>
+              <Text style={styles.actionText}>Favoritos</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
@@ -203,8 +184,9 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.welcomeCard}>
           <Text style={styles.welcomeTitle}>¡Bienvenido a la aplicación!</Text>
           <Text style={styles.welcomeText}>
-            Sistema completo de autenticación con funcionalidad de adopción de mascotas. 
-            Explora, guarda favoritos y conecta con refugios para encontrar tu compañero perfecto.
+            Esta es una demostración de un sistema de autenticación completo 
+            con React Native y Expo. Todas las funcionalidades de autenticación 
+            están implementadas y funcionando correctamente.
           </Text>
         </View>
       </ScrollView>
@@ -291,64 +273,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'capitalize',
   },
-  featuredCard: {
-    backgroundColor: '#007bff',
-    borderRadius: 15,
-    padding: 20,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  featuredIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  featuredIconText: {
-    fontSize: 30,
-  },
-  featuredContent: {
-    flex: 1,
-  },
-  featuredTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 5,
-  },
-  featuredSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
-  },
-  featuredDescription: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.8)',
-    lineHeight: 18,
-  },
-  featuredArrow: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  featuredArrowText: {
-    fontSize: 16,
-    color: '#fff',
-    fontWeight: 'bold',
-  },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 10,
@@ -406,9 +330,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 10,
-  },
-  adoptionIcon: {
-    backgroundColor: '#28a745',
   },
   actionIconText: {
     fontSize: 24,

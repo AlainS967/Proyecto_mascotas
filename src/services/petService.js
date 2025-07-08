@@ -1,336 +1,379 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const PETS_KEY = '@pets_data';
-const FAVORITES_KEY = '@favorites_pets';
-
-// Base de datos simulada de mascotas
-const initialPets = [
-  {
-    id: '1',
-    name: 'Luna',
-    type: 'Perro',
-    breed: 'Golden Retriever',
-    age: 2,
-    gender: 'Hembra',
-    size: 'Grande',
-    color: 'Dorado',
-    description: 'Luna es una perra muy cariñosa y juguetona. Le encanta nadar y jugar con niños. Está completamente vacunada y esterilizada.',
-    location: 'Madrid, España',
-    images: [
-      'https://images.unsplash.com/photo-1552053831-71594a27632d?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1583337130417-3346a1be7dee?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=300&fit=crop'
-    ],
-    characteristics: ['Cariñosa', 'Juguetona', 'Obediente', 'Sociable'],
-    healthStatus: 'Excelente',
-    vaccinated: true,
-    sterilized: true,
-    adoptionFee: 150,
-    contactInfo: {
-      phone: '+34 600 123 456',
-      email: 'contacto@refugio.com',
-      organization: 'Refugio Esperanza'
-    },
-    dateAdded: '2024-01-15',
-    adopted: false
-  },
-  {
-    id: '2',
-    name: 'Milo',
-    type: 'Gato',
-    breed: 'Persa',
-    age: 3,
-    gender: 'Macho',
-    size: 'Mediano',
-    color: 'Blanco y Gris',
-    description: 'Milo es un gato muy tranquilo y cariñoso. Perfecto para apartamentos. Le gusta dormir en lugares soleados y es muy limpio.',
-    location: 'Barcelona, España',
-    images: [
-      'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1533743983669-94fa5c4338ec?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1513245543132-31f507417b26?w=400&h=300&fit=crop'
-    ],
-    characteristics: ['Tranquilo', 'Cariñoso', 'Independiente', 'Limpio'],
-    healthStatus: 'Excelente',
-    vaccinated: true,
-    sterilized: true,
-    adoptionFee: 80,
-    contactInfo: {
-      phone: '+34 600 789 012',
-      email: 'info@gatosfelices.com',
-      organization: 'Gatos Felices'
-    },
-    dateAdded: '2024-01-10',
-    adopted: false
-  },
-  {
-    id: '3',
-    name: 'Max',
-    type: 'Perro',
-    breed: 'Labrador',
-    age: 4,
-    gender: 'Macho',
-    size: 'Grande',
-    color: 'Negro',
-    description: 'Max es un perro muy leal y protector. Ideal para familias con niños. Le encanta correr y hacer ejercicio.',
-    location: 'Valencia, España',
-    images: [
-      'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=400&h=300&fit=crop'
-    ],
-    characteristics: ['Leal', 'Protector', 'Energético', 'Inteligente'],
-    healthStatus: 'Excelente',
-    vaccinated: true,
-    sterilized: true,
-    adoptionFee: 120,
-    contactInfo: {
-      phone: '+34 600 345 678',
-      email: 'adopciones@perrosamigos.com',
-      organization: 'Perros Amigos'
-    },
-    dateAdded: '2024-01-20',
-    adopted: false
-  },
-  {
-    id: '4',
-    name: 'Bella',
-    type: 'Gato',
-    breed: 'Siamés',
-    age: 1,
-    gender: 'Hembra',
-    size: 'Pequeño',
-    color: 'Crema y Marrón',
-    description: 'Bella es una gatita muy activa y curiosa. Le encanta explorar y jugar con juguetes. Es muy vocal y comunicativa.',
-    location: 'Sevilla, España',
-    images: [
-      'https://images.unsplash.com/photo-1596854407944-bf87f6fdd49e?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1606214174585-fe31582dc6ee?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1615789591457-74a63395c990?w=400&h=300&fit=crop'
-    ],
-    characteristics: ['Activa', 'Curiosa', 'Comunicativa', 'Juguetona'],
-    healthStatus: 'Excelente',
-    vaccinated: true,
-    sterilized: false,
-    adoptionFee: 90,
-    contactInfo: {
-      phone: '+34 600 456 789',
-      email: 'contacto@felinos.org',
-      organization: 'Felinos de Andalucía'
-    },
-    dateAdded: '2024-01-25',
-    adopted: false
-  },
-  {
-    id: '5',
-    name: 'Rocky',
-    type: 'Perro',
-    breed: 'Bulldog Francés',
-    age: 5,
-    gender: 'Macho',
-    size: 'Mediano',
-    color: 'Atigrado',
-    description: 'Rocky es un perro muy tranquilo y cariñoso. Perfecto para personas mayores o familias tranquilas. Le gusta pasear y relajarse.',
-    location: 'Bilbao, España',
-    images: [
-      'https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=400&h=300&fit=crop'
-    ],
-    characteristics: ['Tranquilo', 'Cariñoso', 'Fácil de cuidar', 'Sociable'],
-    healthStatus: 'Bueno',
-    vaccinated: true,
-    sterilized: true,
-    adoptionFee: 200,
-    contactInfo: {
-      phone: '+34 600 567 890',
-      email: 'info@bulldogrescue.com',
-      organization: 'Bulldog Rescue'
-    },
-    dateAdded: '2024-01-12',
-    adopted: false
-  }
-];
+import { databaseService } from './databaseService';
 
 export const petService = {
-  // Inicializar datos de mascotas
-  async initializePets() {
+  // Inicializar el servicio
+  async initialize() {
     try {
-      const existingPets = await AsyncStorage.getItem(PETS_KEY);
-      if (!existingPets) {
-        await AsyncStorage.setItem(PETS_KEY, JSON.stringify(initialPets));
-      }
+      await databaseService.initializeDatabase();
     } catch (error) {
-      console.error('Error initializing pets:', error);
+      console.error('Error inicializando servicio de mascotas:', error);
+      throw error;
     }
   },
 
-  // Obtener todas las mascotas
-  async getAllPets() {
+  // Obtener todas las mascotas disponibles
+  async getAvailablePets(userId = null) {
     try {
-      await this.initializePets();
-      const pets = await AsyncStorage.getItem(PETS_KEY);
-      return pets ? JSON.parse(pets) : initialPets;
+      return await databaseService.getAvailablePets(userId);
     } catch (error) {
-      console.error('Error getting pets:', error);
-      return initialPets;
-    }
-  },
-
-  // Obtener mascotas disponibles para adopción
-  async getAvailablePets() {
-    try {
-      const allPets = await this.getAllPets();
-      return allPets.filter(pet => !pet.adopted);
-    } catch (error) {
-      console.error('Error getting available pets:', error);
+      console.error('Error obteniendo mascotas disponibles:', error);
       return [];
+    }
+  },
+
+  // Obtener mascotas del usuario
+  async getUserPets(userId) {
+    try {
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+      return await databaseService.getUserPets(userId);
+    } catch (error) {
+      console.error('Error obteniendo mascotas del usuario:', error);
+      throw error;
     }
   },
 
   // Obtener una mascota por ID
   async getPetById(petId) {
     try {
-      const pets = await this.getAllPets();
-      return pets.find(pet => pet.id === petId);
-    } catch (error) {
-      console.error('Error getting pet by ID:', error);
-      return null;
-    }
-  },
-
-  // Actualizar información de una mascota
-  async updatePet(petId, updatedData) {
-    try {
-      const pets = await this.getAllPets();
-      const petIndex = pets.findIndex(pet => pet.id === petId);
-      
-      if (petIndex !== -1) {
-        pets[petIndex] = { ...pets[petIndex], ...updatedData };
-        await AsyncStorage.setItem(PETS_KEY, JSON.stringify(pets));
-        return pets[petIndex];
+      if (!petId) {
+        throw new Error('ID de mascota requerido');
       }
-      return null;
+      return await databaseService.getPetById(petId);
     } catch (error) {
-      console.error('Error updating pet:', error);
-      return null;
+      console.error('Error obteniendo mascota:', error);
+      throw error;
     }
   },
 
-  // Agregar una nueva mascota
-  async addPet(petData) {
+  // Crear nueva mascota
+  async createPet(petData, userId, userEmail) {
     try {
-      const pets = await this.getAllPets();
-      const newPet = {
-        id: Date.now().toString(),
-        ...petData,
-        dateAdded: new Date().toISOString().split('T')[0],
-        adopted: false
-      };
+      // Validaciones
+      this.validatePetData(petData);
       
-      pets.push(newPet);
-      await AsyncStorage.setItem(PETS_KEY, JSON.stringify(pets));
-      return newPet;
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+
+      if (!userEmail) {
+        throw new Error('Email de usuario requerido');
+      }
+
+      return await databaseService.createPet(petData, userId, userEmail);
     } catch (error) {
-      console.error('Error adding pet:', error);
-      return null;
+      console.error('Error creando mascota:', error);
+      throw error;
     }
   },
 
-  // Marcar mascota como adoptada
-  async markAsAdopted(petId) {
+  // Actualizar mascota
+  async updatePet(petId, petData, userId) {
     try {
-      return await this.updatePet(petId, { adopted: true });
-    } catch (error) {
-      console.error('Error marking pet as adopted:', error);
-      return null;
-    }
-  },
-
-  // Filtrar mascotas por tipo
-  async getPetsByType(type) {
-    try {
-      const pets = await this.getAvailablePets();
-      return pets.filter(pet => pet.type.toLowerCase() === type.toLowerCase());
-    } catch (error) {
-      console.error('Error filtering pets by type:', error);
-      return [];
-    }
-  },
-
-  // Buscar mascotas por nombre o características
-  async searchPets(query) {
-    try {
-      const pets = await this.getAvailablePets();
-      const searchTerm = query.toLowerCase();
+      // Validaciones
+      this.validatePetData(petData, false); // false = no requerir todos los campos
       
-      return pets.filter(pet => 
-        pet.name.toLowerCase().includes(searchTerm) ||
-        pet.breed.toLowerCase().includes(searchTerm) ||
-        pet.characteristics.some(char => char.toLowerCase().includes(searchTerm)) ||
-        pet.location.toLowerCase().includes(searchTerm)
-      );
+      if (!petId) {
+        throw new Error('ID de mascota requerido');
+      }
+
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+
+      return await databaseService.updatePet(petId, petData, userId);
     } catch (error) {
-      console.error('Error searching pets:', error);
-      return [];
+      console.error('Error actualizando mascota:', error);
+      throw error;
+    }
+  },
+
+  // Eliminar mascota
+  async deletePet(petId, userId) {
+    try {
+      if (!petId) {
+        throw new Error('ID de mascota requerido');
+      }
+
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+
+      return await databaseService.deletePet(petId, userId);
+    } catch (error) {
+      console.error('Error eliminando mascota:', error);
+      throw error;
+    }
+  },
+
+  // Validar datos de mascota
+  validatePetData(petData, requireAll = true) {
+    const requiredFields = ['name', 'breed', 'age', 'description', 'location'];
+    const optionalFields = ['image', 'gender', 'weight', 'color', 'personalityTags', 'medicalInfo', 'vaccinated', 'sterilized'];
+
+    // Validar campos requeridos
+    if (requireAll) {
+      for (const field of requiredFields) {
+        if (!petData[field] || petData[field].trim() === '') {
+          throw new Error(`El campo ${field} es requerido`);
+        }
+      }
+    }
+
+    // Validar tipos de datos
+    if (petData.name && typeof petData.name !== 'string') {
+      throw new Error('El nombre debe ser texto');
+    }
+
+    if (petData.name && petData.name.length > 50) {
+      throw new Error('El nombre no puede tener más de 50 caracteres');
+    }
+
+    if (petData.breed && typeof petData.breed !== 'string') {
+      throw new Error('La raza debe ser texto');
+    }
+
+    if (petData.age && typeof petData.age !== 'string') {
+      throw new Error('La edad debe ser texto');
+    }
+
+    if (petData.description && typeof petData.description !== 'string') {
+      throw new Error('La descripción debe ser texto');
+    }
+
+    if (petData.description && petData.description.length > 500) {
+      throw new Error('La descripción no puede tener más de 500 caracteres');
+    }
+
+    if (petData.location && typeof petData.location !== 'string') {
+      throw new Error('La ubicación debe ser texto');
+    }
+
+    if (petData.gender && !['Macho', 'Hembra'].includes(petData.gender)) {
+      throw new Error('El género debe ser Macho o Hembra');
+    }
+
+    if (petData.vaccinated !== undefined && typeof petData.vaccinated !== 'boolean') {
+      throw new Error('El estado de vacunación debe ser verdadero o falso');
+    }
+
+    if (petData.sterilized !== undefined && typeof petData.sterilized !== 'boolean') {
+      throw new Error('El estado de esterilización debe ser verdadero o falso');
+    }
+
+    if (petData.personalityTags && !Array.isArray(petData.personalityTags)) {
+      throw new Error('Las etiquetas de personalidad deben ser una lista');
+    }
+
+    if (petData.image && typeof petData.image !== 'string') {
+      throw new Error('La imagen debe ser una URL válida');
     }
   },
 
   // Gestión de favoritos
-  async getFavorites() {
+  async getFavorites(userId) {
     try {
-      const favorites = await AsyncStorage.getItem(FAVORITES_KEY);
-      return favorites ? JSON.parse(favorites) : [];
-    } catch (error) {
-      console.error('Error getting favorites:', error);
-      return [];
-    }
-  },
-
-  async addToFavorites(petId) {
-    try {
-      const favorites = await this.getFavorites();
-      if (!favorites.includes(petId)) {
-        favorites.push(petId);
-        await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
       }
-      return favorites;
+      return await databaseService.getFavoritePets(userId);
     } catch (error) {
-      console.error('Error adding to favorites:', error);
+      console.error('Error obteniendo favoritos:', error);
       return [];
     }
   },
 
-  async removeFromFavorites(petId) {
+  async addToFavorites(userId, petId) {
     try {
-      const favorites = await this.getFavorites();
-      const updatedFavorites = favorites.filter(id => id !== petId);
-      await AsyncStorage.setItem(FAVORITES_KEY, JSON.stringify(updatedFavorites));
-      return updatedFavorites;
+      if (!userId || !petId) {
+        throw new Error('ID de usuario y mascota requeridos');
+      }
+      await databaseService.addToFavorites(userId, petId);
+      return true;
     } catch (error) {
-      console.error('Error removing from favorites:', error);
-      return [];
+      console.error('Error agregando a favoritos:', error);
+      throw error;
     }
   },
 
-  async getFavoritePets() {
+  async removeFromFavorites(userId, petId) {
     try {
-      const favorites = await this.getFavorites();
-      const allPets = await this.getAllPets();
-      return allPets.filter(pet => favorites.includes(pet.id));
+      if (!userId || !petId) {
+        throw new Error('ID de usuario y mascota requeridos');
+      }
+      await databaseService.removeFromFavorites(userId, petId);
+      return true;
     } catch (error) {
-      console.error('Error getting favorite pets:', error);
-      return [];
+      console.error('Error removiendo de favoritos:', error);
+      throw error;
     }
   },
 
-  async isFavorite(petId) {
+  async isFavorite(userId, petId) {
     try {
-      const favorites = await this.getFavorites();
-      return favorites.includes(petId);
+      const favoriteIds = await databaseService.getFavorites(userId);
+      return favoriteIds.includes(petId);
     } catch (error) {
-      console.error('Error checking if favorite:', error);
+      console.error('Error verificando favorito:', error);
       return false;
     }
-  }
+  },
+
+  // Swipe actions
+  async recordSwipe(userId, petId, action) {
+    try {
+      if (!userId || !petId || !action) {
+        throw new Error('Parámetros requeridos: userId, petId, action');
+      }
+
+      if (!['like', 'pass'].includes(action)) {
+        throw new Error('Acción debe ser like o pass');
+      }
+
+      await databaseService.recordSwipe(userId, petId, action);
+      
+      // Si es like, agregar a favoritos automáticamente
+      if (action === 'like') {
+        await this.addToFavorites(userId, petId);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error guardando swipe:', error);
+      throw error;
+    }
+  },
+
+  // Obtener mascotas para Adopit
+  async getPetsForTinder(userId) {
+    try {
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+      return await databaseService.getPetsForTinder(userId);
+    } catch (error) {
+      console.error('Error obteniendo mascotas para Adopit:', error);
+      return [];
+    }
+  },
+
+  // Buscar mascotas
+  async searchPets(searchQuery = '', filters = {}) {
+    try {
+      return await databaseService.searchPets(searchQuery, filters);
+    } catch (error) {
+      console.error('Error buscando mascotas:', error);
+      return [];
+    }
+  },
+
+  // Filtros predefinidos
+  getFilterOptions() {
+    return {
+      breeds: [
+        'Golden Retriever', 'Labrador', 'Pastor Alemán', 'Bulldog Francés',
+        'Chihuahua', 'Poodle', 'Husky Siberiano', 'Border Collie',
+        'Gato Persa', 'Gato Siamés', 'Maine Coon', 'British Shorthair',
+        'Bengalí', 'Ragdoll', 'Sphynx', 'Scottish Fold'
+      ],
+      genders: ['Macho', 'Hembra'],
+      locations: [
+        'Madrid, España', 'Barcelona, España', 'Valencia, España',
+        'Sevilla, España', 'Bilbao, España', 'Málaga, España',
+        'Zaragoza, España', 'Murcia, España'
+      ],
+      personalityTags: [
+        'Cariñoso', 'Juguetón', 'Tranquilo', 'Activo', 'Inteligente',
+        'Leal', 'Independiente', 'Sociable', 'Protector', 'Dulce',
+        'Energético', 'Obediente', 'Curioso', 'Tímido', 'Valiente'
+      ]
+    };
+  },
+
+  // Obtener estadísticas del usuario
+  async getUserStats(userId) {
+    try {
+      if (!userId) {
+        throw new Error('ID de usuario requerido');
+      }
+      return await databaseService.getStats(userId);
+    } catch (error) {
+      console.error('Error obteniendo estadísticas:', error);
+      return {
+        totalPets: 0,
+        activePets: 0,
+        totalFavorites: 0,
+        totalSwipes: 0,
+        totalLikes: 0,
+      };
+    }
+  },
+
+  // Utilidades
+  formatPetAge(ageString) {
+    if (!ageString) return 'Edad no especificada';
+    return ageString;
+  },
+
+  formatPetLocation(location) {
+    if (!location) return 'Ubicación no especificada';
+    return location;
+  },
+
+  getPersonalityString(personalityTags) {
+    if (!personalityTags || !Array.isArray(personalityTags) || personalityTags.length === 0) {
+      return 'Personalidad no especificada';
+    }
+    return personalityTags.join(', ');
+  },
+
+  // Generar datos de demo para testing
+  async generateDemoData(userId, userEmail) {
+    try {
+      const demoPets = [
+        {
+          name: 'Buddy',
+          breed: 'Labrador',
+          age: '2 años',
+          description: 'Un perro muy amigable y perfecto para familias con niños.',
+          location: 'Tu ciudad',
+          gender: 'Macho',
+          weight: '30kg',
+          color: 'Chocolate',
+          image: 'https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=400',
+          vaccinated: true,
+          sterilized: true,
+          personalityTags: ['Amigable', 'Juguetón', 'Obediente'],
+          medicalInfo: 'Salud excelente, todas las vacunas al día',
+        },
+        {
+          name: 'Mimi',
+          breed: 'Gato Doméstico',
+          age: '1 año',
+          description: 'Una gatita muy cariñosa que busca un hogar lleno de amor.',
+          location: 'Tu ciudad',
+          gender: 'Hembra',
+          weight: '3kg',
+          color: 'Tricolor',
+          image: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=400',
+          vaccinated: true,
+          sterilized: false,
+          personalityTags: ['Cariñosa', 'Tranquila', 'Independiente'],
+          medicalInfo: 'Vacunas completas, pendiente esterilización',
+        }
+      ];
+
+      const createdPets = [];
+      for (const petData of demoPets) {
+        const newPet = await this.createPet(petData, userId, userEmail);
+        createdPets.push(newPet);
+      }
+
+      return createdPets;
+    } catch (error) {
+      console.error('Error generando datos de demo:', error);
+      throw error;
+    }
+  },
 };
