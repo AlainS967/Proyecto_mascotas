@@ -17,10 +17,11 @@ const AdopitSimpleScreen = ({ navigation }) => {
   const [pets, setPets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showAllPets, setShowAllPets] = useState(false); // Nuevo estado para mostrar todas las mascotas
 
   useEffect(() => {
     loadPets();
-  }, []);
+  }, [showAllPets]); // Recargar cuando cambie el modo
 
   const loadPets = async () => {
     try {
@@ -28,6 +29,7 @@ const AdopitSimpleScreen = ({ navigation }) => {
       console.log('🔄 AdopitSimpleScreen: Cargando mascotas...');
       console.log('👤 Usuario ID:', user?.id);
       console.log('📧 Usuario email:', user?.email);
+      console.log('🎯 Modo ver todas las mascotas:', showAllPets);
       
       if (!user?.id) {
         console.error('❌ No hay usuario autenticado');
@@ -36,16 +38,29 @@ const AdopitSimpleScreen = ({ navigation }) => {
         return;
       }
       
-      console.log('🔄 Llamando a petService.getPetsForAdopit...');
-      const adoptionPets = await petService.getPetsForAdopit(user.id);
+      let adoptionPets;
+      
+      if (showAllPets) {
+        // Modo demostración: mostrar TODAS las mascotas disponibles (incluyendo las propias)
+        console.log('🔄 Llamando a petService.getAvailablePets (todas)...');
+        adoptionPets = await petService.getAvailablePets();
+        console.log('🎯 Modo demostración: mostrando todas las mascotas');
+      } else {
+        // Modo normal: solo mascotas de otros usuarios
+        console.log('🔄 Llamando a petService.getPetsForAdopit (solo otros usuarios)...');
+        adoptionPets = await petService.getPetsForAdopit(user.id);
+        console.log('🎯 Modo normal: solo mascotas de otros usuarios');
+      }
+      
       console.log('🐕 Mascotas para adopción obtenidas:', adoptionPets);
       console.log('📊 Número de mascotas disponibles:', adoptionPets?.length || 0);
       
       if (adoptionPets && adoptionPets.length > 0) {
-        console.log('🏷️ IDs de mascotas:', adoptionPets.map(p => `${p.id}(${p.name})`).join(', '));
+        console.log('🏷️ IDs de mascotas:', adoptionPets.map(p => `${p.id}(${p.name}) - Owner: ${p.ownerId}`).join(', '));
       }
       
       setPets(adoptionPets || []);
+      setCurrentIndex(0); // Resetear índice cuando se cargan nuevas mascotas
       console.log('✅ Mascotas establecidas en estado');
     } catch (error) {
       console.error('❌ Error cargando mascotas en AdopitSimpleScreen:', error);
@@ -104,6 +119,21 @@ const AdopitSimpleScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Toggle para mostrar todas las mascotas */}
+      <View style={styles.toggleContainer}>
+        <Text style={styles.toggleLabel}>
+          {showAllPets ? 'Viendo: Todas las mascotas' : 'Viendo: Solo de otros usuarios'}
+        </Text>
+        <TouchableOpacity 
+          style={styles.toggleButton} 
+          onPress={() => setShowAllPets(!showAllPets)}
+        >
+          <Text style={styles.toggleButtonText}>
+            {showAllPets ? '👥 Ver solo otros' : '🌍 Ver todas'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.content}>
         {/* Debug Info */}
         <View style={styles.debugBox}>
@@ -152,6 +182,14 @@ const AdopitSimpleScreen = ({ navigation }) => {
                 <Text style={styles.petBreed}>{currentPet.breed}</Text>
                 <Text style={styles.petAge}>{currentPet.age}</Text>
                 <Text style={styles.petLocation}>{currentPet.location}</Text>
+                
+                {/* Información del propietario */}
+                <View style={styles.ownerInfo}>
+                  <Text style={styles.ownerLabel}>
+                    {currentPet.ownerId === user.id ? '🏠 Tu mascota' : '👤 Propietario: ' + (currentPet.ownerEmail || 'Usuario')}
+                  </Text>
+                </View>
+                
                 <Text style={styles.petDescription}>{currentPet.description}</Text>
               </View>
             </View>
@@ -162,9 +200,15 @@ const AdopitSimpleScreen = ({ navigation }) => {
                 <Text style={styles.buttonText}>💔 Pasar</Text>
               </TouchableOpacity>
               
-              <TouchableOpacity style={styles.likeButton} onPress={handleLike}>
-                <Text style={styles.buttonText}>❤️ Me gusta</Text>
-              </TouchableOpacity>
+              {currentPet.ownerId === user.id ? (
+                <TouchableOpacity style={[styles.likeButton, styles.disabledButton]} disabled>
+                  <Text style={styles.buttonText}>🏠 Tu mascota</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.likeButton} onPress={handleLike}>
+                  <Text style={styles.buttonText}>❤️ Me gusta</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         ) : (
@@ -339,10 +383,53 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     elevation: 3,
   },
+  disabledButton: {
+    backgroundColor: '#6c757d',
+    opacity: 0.6,
+  },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  toggleContainer: {
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleLabel: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  toggleButton: {
+    backgroundColor: '#007bff',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  toggleButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  ownerInfo: {
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    marginBottom: 10,
+    alignSelf: 'center',
+  },
+  ownerLabel: {
+    fontSize: 12,
+    color: '#495057',
+    fontWeight: '600',
   },
 });
 
