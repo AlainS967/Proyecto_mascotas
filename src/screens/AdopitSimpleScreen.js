@@ -17,7 +17,7 @@ const AdopitSimpleScreen = ({ navigation }) => {
   const [pets, setPets] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showAllPets, setShowAllPets] = useState(false); // Nuevo estado para mostrar todas las mascotas
+  const [showAllPets, setShowAllPets] = useState(false); // Modo demostración
 
   useEffect(() => {
     loadPets();
